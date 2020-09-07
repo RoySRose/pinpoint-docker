@@ -11,22 +11,34 @@ ENV HBASE_VERSION=1.2.6
 ENV BASE_DIR=/opt/hbase
 ENV HBASE_HOME=${BASE_DIR}/hbase-${HBASE_VERSION}
 
+## zookeeper
+EXPOSE 2181
 
 COPY hbase-site.xml hbase-site.xml
+COPY hbase-env.sh hbase-env.sh
+#COPY hbase-1.2.6-bin.tar.gz hbase-1.2.6-bin.tar.gz
+COPY /build/scripts/initialize-hbase.sh /usr/local/bin/
+COPY /build/scripts/backprocess.sh /usr/local/bin/
 
-RUN mkdir -p ${BASE_DIR} \
+RUN chmod a+x /usr/local/bin/initialize-hbase.sh \
+    && chmod a+x /usr/local/bin/backprocess.sh \
+    && mkdir -p ${BASE_DIR} \
     && cd ${BASE_DIR} \
+#    && mv ../../hbase-1.2.6-bin.tar.gz ../../${BASE_DIR}/hbase.tar.gz \
     && curl -fSL "${HBASE_REPOSITORY}/${HBASE_VERSION}/hbase-${HBASE_VERSION}-bin.tar.gz" -o hbase.tar.gz || curl -fSL "${HBASE_SUB_REPOSITORY}/${HBASE_VERSION}/hbase-${HBASE_VERSION}-bin.tar.gz" -o hbase.tar.gz \
     && tar xfvz hbase.tar.gz \
     && mv ../../hbase-site.xml ../../${HBASE_HOME}/conf/hbase-site.xml \
+    && mv ../../hbase-env.sh ../../${HBASE_HOME}/conf/hbase-env.sh\
     && curl -SL "https://raw.githubusercontent.com/naver/pinpoint/v${PINPOINT_VERSION}/hbase/scripts/hbase-create.hbase" -o ${BASE_DIR}/hbase-create.hbase \
-    && ${HBASE_HOME}/bin/start-hbase.sh \
-    && sleep 10 \
-    && ${HBASE_HOME}/bin/hbase shell ${BASE_DIR}/hbase-create.hbase \
-    && ${HBASE_HOME}/bin/stop-hbase.sh \
-    && rm ${BASE_DIR}/hbase-create.hbase \
+#    && ${HBASE_HOME}/bin/start-hbase.sh \
+#    && sleep 10 \
+#    && ${HBASE_HOME}/bin/hbase shell ${BASE_DIR}/hbase-create.hbase \
+#    && ${HBASE_HOME}/bin/stop-hbase.sh \
+#    && rm ${BASE_DIR}/hbase-create.hbase \
     && rm -rf hbase.tar.gz
 
 VOLUME ["/home/pinpoint/hbase", "/home/pinpoint/zookeeper"]
 
-ENTRYPOINT ${BASE_DIR}/hbase-${HBASE_VERSION}/bin/hbase master start
+ENTRYPOINT ["/usr/local/bin/initialize-hbase.sh"]
+#ENTRYPOINT ${BASE_DIR}/hbase-${HBASE_VERSION}/bin/start-hbase.sh
+#hbase master start
